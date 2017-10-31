@@ -2,12 +2,10 @@
 import re
 
 import numpy
-
 from drewtils.parsers import KeywordParser
 
-from serpentTools.objects.readers import MaterialReader
 from serpentTools.objects.materials import DepletedMaterial
-
+from serpentTools.objects.readers import MaterialReader
 from serpentTools.settings import messages
 
 
@@ -130,14 +128,3 @@ class DepletionReader(MaterialReader):
                     continue
                 cleaned.append(line[:line.index('%')])
         self.materials[name].addData(variable, cleaned)
-
-
-if __name__ == '__main__':
-    from matplotlib import pyplot
-    depFile = 'pwrpin_dep.m'
-    dep = DepletionReader(depFile)
-    dep.read()
-    fuel1 = dep.materials['FUEL1']
-    ax = fuel1.plot('burnup', 'adens', names=['Xe135', 'Sm149'],
-                    autolegend=True, autolabel=True)
-    pyplot.show()
