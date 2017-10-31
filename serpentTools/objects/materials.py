@@ -42,6 +42,7 @@ class DepletedMaterial(NamedObject):
         self.zai = parser.metadata.get('zai', None)
         self.names = parser.metadata.get('names', None)
         self.days = parser.metadata.get('days', None)
+        self.depBurnup = parser.metadata.get('burnup', None)
         self.__burnup__ = None
         self.__adens__ = None
         self.__mdens__ = None
@@ -189,7 +190,8 @@ class DepletedMaterial(NamedObject):
             rowIDs[indx] = self.names.index(isotope)
         return rowIDs
 
-    def plot(self, xUnits, yUnits, timePoints=None, names=None, ax=None):
+    def plot(self, xUnits, yUnits, timePoints=None, names=None, ax=None,
+             autolabel=True, autolegend=True):
         """
         Plot some data as a function of time for some or all isotopes.
 
@@ -208,6 +210,10 @@ class DepletedMaterial(NamedObject):
         ax: None or ``matplotlib axes``
             If given, add the data to this plot.
             Otherwise, create a new plot
+        autolabel: bool
+            Add appropriate labels to axis
+        autolegend: bool
+            Add a legend to the figure
 
         Returns
         -------
@@ -219,10 +225,25 @@ class DepletedMaterial(NamedObject):
         getXY
 
         """
-        xVals = timePoints or self.days
+        xVals, _colIndxs = self._getXSlice(xUnits, timePoints)
+        if names is None:
+            names = [name for name in self.names
+                     if name not in ['lost', 'total']]
         yVals = self.getValues(xUnits, yUnits, xVals, names)
         ax = ax or pyplot.axes()
-        labels = names or ['']
         for row in range(yVals.shape[0]):
-            ax.plot(xVals, yVals[row], label=labels[row])
+            ax.plot(xVals, yVals[row], label=names[row])
+        if autolegend:
+            ax.legend()
+        if autolabel:
+            labels = {'burnup': 'Burnup [MWd/kgIHM]',
+                      'days': 'Time [days]', 'adens': 'Atomic density [#/cc]',
+                      'mdens': 'Mass density [g/cc]'}
+
+            xLabel = (labels[xUnits] if xUnits in labels
+                      else xUnits)
+            yLabel = (labels[yUnits] if yUnits in labels
+                      else yUnits)
+            ax.set_xlabel(xLabel)
+            ax.set_ylabel(yLabel)
         return ax

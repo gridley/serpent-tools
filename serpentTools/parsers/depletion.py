@@ -115,7 +115,7 @@ class DepletionReader(MaterialReader):
 
     def _processChunk(self, chunk, name, variable):
         if (self.settings['materialVariables']
-                and variable not in self.settings['materialVariables']):
+            and variable not in self.settings['materialVariables']):
             return
         if name not in self.materials:
             messages.debug('Adding material {}...'.format(name))
@@ -130,3 +130,14 @@ class DepletionReader(MaterialReader):
                     continue
                 cleaned.append(line[:line.index('%')])
         self.materials[name].addData(variable, cleaned)
+
+
+if __name__ == '__main__':
+    from matplotlib import pyplot
+    depFile = 'pwrpin_dep.m'
+    dep = DepletionReader(depFile)
+    dep.read()
+    fuel1 = dep.materials['FUEL1']
+    ax = fuel1.plot('burnup', 'adens', names=['Xe135', 'Sm149'],
+                    autolegend=True, autolabel=True)
+    pyplot.show()
