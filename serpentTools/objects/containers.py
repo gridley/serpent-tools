@@ -1,6 +1,6 @@
 import six
 
-from numpy import empty
+from numpy import empty, arange, ceil
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
@@ -131,7 +131,7 @@ class Detector(NamedObject):
 
     def __init__(self, parser, name, settings):
         NamedObject.__init__(self, parser, name)
-        self.sigma = settings['sigma']
+        self.__sigma__ = settings['sigma']
         versionIndx = 0 if settings['version'][0] == '1' else 1
         self.__indx__ = {key: value[versionIndx]
                          for key, value in six.iteritems(DETECTOR_INDICES)}
@@ -145,6 +145,45 @@ class Detector(NamedObject):
 
     def __str__(self):
         return 'Detector {}'.format(self.name)
+
+    @property
+    def sigma(self):
+        """Confidence interval for uncertainties"""
+        return self.__sigma__
+
+    @sigma.setter
+    def sigma(self, value):
+
+        if isinstance(value, float):
+            value = int(ceil(value))
+            messages.info('Rounding floating-point uncertainty to {}'
+                          .format(value))
+
+        if isinstance(value, str):
+            value = int(value)
+
+        if value < 0:
+            value = -value
+            messages.warning('Will not set confidence interval to negative. '
+                             'Using {}'.format(value))
+        elif not value:
+            value = 1
+            messages.warning('Will not set confidence interval to zero. '
+                             'Using 1')
+
+        if value == self.__sigma__:
+            messages.debug('Value {} is equal to current sigma {}. '
+                           'Nothing to update'.format(value, self.__sigma__))
+            return
+
+        # update uncertainty to account for new confidence interval
+        if self.__sigma__ is not None and self.bins is not None:
+            messages.debug('Updating uncertinties from a confidence interval '
+                           'of {} to {}'.format(self.__sigma__, value))
+            self.bins[:, self.__indx__['U']] = (
+                self.bins[:, self.__indx__['U']] * value / self.__sigma__)
+            messages.debug('done')
+        self.__sigma__ = value
 
     def addTallyData(self, bins):
         """Add and, possibly clean, tally data."""
@@ -241,7 +280,7 @@ class Detector(NamedObject):
         if errMsg:
             raise messages.SerpentToolsException(errMsg)
 
-        ax = self.__errorPlot__(energies, ax, steps, 'Energy [eV]', yLabel)
+        ax = self.__errorPlot__(energies, ax, steps, 'Energy [MeV]', yLabel)
         ax.set_xscale('log')
         ax.set_yscale('log')
 
@@ -318,6 +357,29 @@ class Detector(NamedObject):
 
         return ax
 
+    def plot(self, ax=None, steps=False, yLabel=None, xLabel=None):
+        """
+        Simple plot of tally data over bins.
+
+        Parameters
+        ----------
+        ax: pyplot.Axes or None
+            Ax on which to plot the data
+        steps: bool
+            Plot values as constant inside of bin if True
+        yLabel: str or None
+            Label to add to y axis
+        xLabel: str or None
+            Label to add to x axis
+
+        Returns
+        -------
+        ax: pyplot.Axes
+            Axes on which the figure was plotted
+        """
+        return (self.__errorPlot__(
+            arange(len(self.T)), ax, steps, xLabel or 'Bin', yLabel))
+
     def meshPlot(self, dim1, dim2, ax=None, addcbar=True):
         """
         Plot tally data as a function of two mesh dimensions
@@ -329,6 +391,9 @@ class Detector(NamedObject):
         dim2: str
             Secondary dimension - will correspond to y-axis on plot
         ax: axes or None
+            axes on which to draw the meshes
+        addcbar: bool
+            Add a color bar to this figure
 
         Returns
         -------
@@ -398,7 +463,7 @@ class Detector(NamedObject):
         else:
             raise messages.SerpentToolsException(
                 'Could not find easily plot routine for dimensions {} and {}'
-                .format(dim2, dim2))
+                    .format(dim2, dim2))
         messages.debug('done')
         return xGrid, yGrid, patches
 
