@@ -23,6 +23,12 @@ defaultSettings = {
                         'conversion.'),
         'type': list
     },
+    'detector.names': {
+        'default': [],
+        'type': list,
+        'description': 'Names of detectors to store. '
+                       'Empty list -> store all detectors'
+    },
     'depletion.metadataKeys': {
         'default': ['ZAI', 'NAMES', 'DAYS', 'BU'],
         'options': 'default',
