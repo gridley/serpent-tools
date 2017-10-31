@@ -13,11 +13,6 @@ import logging
 from logging.config import dictConfig
 
 
-class SerpentToolsException(Exception):
-    """Base-class for all exceptions in this project"""
-    pass
-
-
 LOG_OPTS = ['critical', 'error', 'warning', 'info', 'debug']
 
 loggingConfig = {
@@ -62,12 +57,14 @@ def warning(message):
     __logger__.warning('%s', message)
 
 
-def error(message, fatal=True):
+def error(message):
     """Log that something went wrong."""
-    if fatal:
-        __logger__.critical('%s', message, exc_info=True)
-        raise SerpentToolsException('%s', message)
     __logger__.error('%s', message)
+
+
+def critical(message):
+    """Log that something went terribly wrong."""
+    __logger__.critical('%s', message.upper())
 
 
 def updateLevel(level):
@@ -88,7 +85,7 @@ def depreciated(f):
     def decoratedFunc(*args, **kwargs):
         msg = 'Call to depreciated function {}'.format(f.__name__)
         warning(msg)
-        _updateFilterAlert(msg, DeprecationWarning)
+        _updateFilterAlert(msg, DeprecationWarning, 3)
         return f(*args, **kwargs)
 
     return decoratedFunc
@@ -101,7 +98,7 @@ def willChange(changeMsg):
         @functools.wraps(f)
         def decoratedFunc(*args, **kwargs):
             warning(changeMsg)
-            _updateFilterAlert(changeMsg, FutureWarning)
+            _updateFilterAlert(changeMsg, FutureWarning, 3)
             return f(*args, **kwargs)
 
         return decoratedFunc
@@ -109,7 +106,17 @@ def willChange(changeMsg):
     return decorate
 
 
-def _updateFilterAlert(msg, category):
+def _updateFilterAlert(msg, category, stackLevel):
     warnings.simplefilter('always', category)
-    warnings.warn(msg, category=category, stacklevel=3)
+    warnings.warn(msg, category=category, stacklevel=stackLevel)
     warnings.simplefilter('default', category)
+
+
+class SerpentToolsException(Exception):
+    """Base-class for all exceptions in this project"""
+    def __init__(self, msg):
+        critical(msg)
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
