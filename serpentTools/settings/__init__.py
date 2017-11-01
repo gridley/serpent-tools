@@ -58,6 +58,22 @@ defaultSettings = {
         'description': 'Option to store the depletion data from the TOT block',
         'type': bool
     },
+    'xs.reshapeScatter': {
+        'default': False,
+        'description': 'If true, convert scatter matrices into matrices, not '
+                       'vectors. ',
+        'type': bool
+    },
+    'xs.getInfXS': {
+        'default': True,
+        'description': 'If true, store the infinite medium cross sections.',
+        'type': bool
+    },
+    'xs.getB1XS': {
+        'default': True,
+        'description': 'If true, store the critical leakage cross sections.',
+        'type': bool
+    },
     'verbosity': {
         'default': 'warning',
         'options': messages.LOG_OPTS,

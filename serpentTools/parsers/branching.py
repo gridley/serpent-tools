@@ -68,23 +68,23 @@ class BranchingReader(XSReader):
         indx, runTot, coefIndx, totCoef, totUniv = header
         self._whereAmI['runIndx'] = int(indx)
         self._whereAmI['coefIndx'] = int(coefIndx)
-        if coefIndx not in self.branches:
-            branchNames = self._advance()[1:]
+        branchNames = tuple(self._advance()[1:])
+        if branchNames not in self.branches:
             branchState = self._processBranchStateData()
-            self.branches[coefIndx] = (
+            self.branches[branchNames] = (
                 BranchContainer(self, coefIndx, branchNames, branchState))
         else:
             self._advance()
-            self._advance()
-        return self.branches[coefIndx], int(totUniv)
+        return self.branches[branchNames], int(totUniv)
 
     def _processBranchStateData(self):
         keyValueList = self._advance()[1:]
         stateData = {}
-        mappings = {'intVariables': int, 'floatVariables': float,
-                    'strVariables': str}
+        mappings = {'intVariables': int, 'floatVariables': float}
+
         for keyIndex in range(0, len(keyValueList), 2):
             key, value = keyValueList[keyIndex: keyIndex + 2]
+            stateData[key] = value
             for mapKey, mapFunc in mappings.items():
                 if key in self.settings[mapKey]:
                     stateData[key] = mapFunc(value)
@@ -99,7 +99,8 @@ class BranchingReader(XSReader):
             splitList = self._advance(possibleEndOfFile=step == numVariables-1)
             varName = splitList[0]
             varValues = splitList[2:]
-            if varName in self.settings['variables']:
+            if (not any(self.settings['variables'])
+                    or varName in self.settings['variables']):
                 univ[varName] = varValues
 
     def write(self, template=None):
@@ -123,15 +124,3 @@ class BranchingReader(XSReader):
 
         """
         raise NotImplementedError
-
-
-if __name__ == '__main__':
-    from serpentTools.settings import rc
-
-    testFile = 'pwrpin100_branching.coe'
-    with rc as temprc:
-        rc['verbosity'] = 'debug'
-        rc['branching.strVariables'] = ['VERSION', 'TIME']
-        rc['xs.variableExtras'] = ['INF_TOT', 'INF_KINF', 'INF_S0']
-        branchReader = BranchingReader(testFile)
-        branchReader.read()
